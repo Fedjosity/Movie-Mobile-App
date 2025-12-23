@@ -1,6 +1,7 @@
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 import { fetchMovies } from "@/services/api";
+import { updateSearchCount } from "@/services/appwrite";
 import useFetch from "@/services/useFetch";
 import React, { useEffect, useState } from "react";
 import {
@@ -26,6 +27,8 @@ const search = () => {
   } = useFetch(() => fetchMovies({ query: searchQuery }), false);
 
   useEffect(() => {
+    updateSearchCount();
+
     const timeoutId = setTimeout(() => {
       if (searchQuery.trim()) {
         loadMovies();
