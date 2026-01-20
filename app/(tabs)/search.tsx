@@ -1,37 +1,31 @@
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
-import { fetchMovies } from "@/services/api";
-import { updateSearchCount } from "@/services/appwrite";
+import { fetchAnimes } from "@/services/api";
 import useFetch from "@/services/useFetch";
+import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import MovieCard from "../components/MovieCard";
+import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
+import AnimeCard from "../components/AnimeCard";
 import SearchBar from "../components/SearchBar";
 
-const search = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+const Search = () => {
+  const { query } = useLocalSearchParams();
+  const [searchQuery, setSearchQuery] = useState(
+    query ? (query as string) : "",
+  );
 
   const {
-    data: movies,
+    data: animes,
     loading,
     error,
-    refetch: loadMovies,
+    refetch: loadAnimes,
     reset,
-  } = useFetch(() => fetchMovies({ query: searchQuery }), false);
+  } = useFetch(() => fetchAnimes({ query: searchQuery }), false);
 
   useEffect(() => {
-    updateSearchCount();
-
     const timeoutId = setTimeout(() => {
       if (searchQuery.trim()) {
-        loadMovies();
+        loadAnimes();
       } else {
         reset();
       }
@@ -39,7 +33,7 @@ const search = () => {
 
     // cleanup: cancel the previous timer
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, loadAnimes, reset]);
 
   return (
     <View className="flex-1 bg-primary">
@@ -49,8 +43,8 @@ const search = () => {
         resizeMode="cover"
       />
       <FlatList
-        data={movies}
-        renderItem={({ item }) => <MovieCard {...item} />}
+        data={animes}
+        renderItem={({ item }) => <AnimeCard {...item} />}
         keyExtractor={(item) => item.id.toString()}
         className="px-5"
         numColumns={3}
@@ -71,6 +65,7 @@ const search = () => {
                 placeholder="Search Animes..."
                 value={searchQuery}
                 onChangeText={(text: string) => setSearchQuery(text)}
+                onPress={() => {}}
               />
             </View>
 
@@ -88,7 +83,7 @@ const search = () => {
               </Text>
             )}
 
-            {!loading && !error && searchQuery.trim() && movies?.length > 0 && (
+            {!loading && !error && searchQuery.trim() && animes?.length > 0 && (
               <Text className="text-xl text-white font-bold">
                 Search Results for{" "}
                 <Text className="text-accent">{searchQuery}</Text>
@@ -101,8 +96,8 @@ const search = () => {
             <View className="mt-10 px-5">
               <Text className="text-gray-500 text-center">
                 {searchQuery.trim()
-                  ? "No movies found for your search."
-                  : "Search for movies to see results."}
+                  ? "No results found"
+                  : "Search for your favorite anime"}
               </Text>
             </View>
           ) : null
@@ -112,6 +107,4 @@ const search = () => {
   );
 };
 
-export default search;
-
-const styles = StyleSheet.create({});
+export default Search;

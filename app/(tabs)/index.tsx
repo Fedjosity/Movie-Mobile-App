@@ -1,7 +1,7 @@
 import SearchBar from "@/app/components/SearchBar";
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
-import { fetchMovies } from "@/services/api";
+import { fetchAnimes } from "@/services/api";
 import useFetch from "@/services/useFetch";
 import { useRouter } from "expo-router";
 import {
@@ -12,16 +12,16 @@ import {
   Text,
   View,
 } from "react-native";
-import MovieCard from "../components/MovieCard";
+import AnimeCard from "../components/AnimeCard";
 
 export default function Index() {
   const router = useRouter();
 
   const {
-    data: movies,
-    loading: moviesLoading,
-    error: moviesError,
-  } = useFetch(() => fetchMovies({ query: "" }));
+    data: animes,
+    loading: animesLoading,
+    error: animesError,
+  } = useFetch(() => fetchAnimes({ query: "" }));
 
   return (
     <View className="flex-1 bg-primary">
@@ -32,31 +32,33 @@ export default function Index() {
         contentContainerStyle={{ minHeight: "100%", paddingBottom: 10 }}
       >
         <Image source={icons.logo} className="w-12 h-10 mt-20 mb-5 mx-auto" />
-        {moviesLoading ? (
+        {animesLoading ? (
           <ActivityIndicator
             size="large"
             color="#0000ff"
             className="mt-10 self-center "
           />
-        ) : moviesError ? (
+        ) : animesError ? (
           <Text className="text-white text-center">
-            Error: {moviesError?.message}
+            Error: {animesError?.message}
           </Text>
         ) : (
           <View className="flex-1 mt-5">
             <SearchBar
               onPress={() => router.push("/search")}
               placeholder="Search Animes..."
+              value=""
+              onChangeText={() => {}}
             />
 
             <>
               <Text className="text-lg text-white font-bold mt-5 mb-3">
-                Latest Movies
+                Latest Animes
               </Text>
 
               <FlatList
-                data={movies}
-                renderItem={({ item }) => <MovieCard {...item} />}
+                data={animes}
+                renderItem={({ item }) => <AnimeCard {...item} />}
                 keyExtractor={(item) => item.id.toString()}
                 numColumns={3}
                 columnWrapperStyle={{

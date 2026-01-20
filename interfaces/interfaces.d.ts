@@ -1,29 +1,33 @@
-interface Movie {
-  id: number;
-  title: string;
+interface Anime {
+  id: number | string; // AnimePahe uses string session IDs sometimes, or number IDs.
+  name: string;
   adult: boolean;
   backdrop_path: string;
   genre_ids: number[];
   original_language: string;
-  original_title: string;
+  original_name: string;
   overview: string;
   popularity: number;
   poster_path: string;
-  release_date: string;
-  video: boolean;
+  first_air_date: string;
   vote_average: number;
   vote_count: number;
+  episodes?: number;
+  status?: string;
+  type?: string;
+  season?: string;
+  year?: number;
 }
 
-interface TrendingMovie {
+interface TrendingAnime {
   searchTerm: string;
-  movie_id: number;
-  title: string;
+  anime_id: number;
+  name: string;
   count: number;
   poster_url: string;
 }
 
-interface MovieDetails {
+interface AnimeDetails {
   adult: boolean;
   backdrop_path: string | null;
   belongs_to_collection: {
@@ -41,7 +45,7 @@ interface MovieDetails {
   id: number;
   imdb_id: string | null;
   original_language: string;
-  original_title: string;
+  original_name: string;
   overview: string | null;
   popularity: number;
   poster_path: string | null;
@@ -55,9 +59,9 @@ interface MovieDetails {
     iso_3166_1: string;
     name: string;
   }[];
-  release_date: string;
+  first_air_date: string;
   revenue: number;
-  runtime: number | null;
+  episode_run_time: number[];
   spoken_languages: {
     english_name: string;
     iso_639_1: string;
@@ -65,13 +69,12 @@ interface MovieDetails {
   }[];
   status: string;
   tagline: string | null;
-  title: string;
-  video: boolean;
+  name: string;
   vote_average: number;
   vote_count: number;
 }
 
 interface TrendingCardProps {
-  movie: TrendingMovie;
+  anime: TrendingAnime;
   index: number;
 }
