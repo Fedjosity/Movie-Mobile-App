@@ -354,7 +354,7 @@ const AnimeDetails = () => {
               />
               <View className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-primary to-transparent" />
             </View>
-            <View className="px-5 -mt-10">
+            <View className="px-5 mt-2">
               <Text className="text-3xl text-white font-bold shadow-sm">
                 {name}
               </Text>
