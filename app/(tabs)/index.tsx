@@ -44,8 +44,7 @@ export default function Index() {
 
   const horizontalPadding = 20;
   const columnGap = 15;
-  const cardWidth =
-    (width - horizontalPadding * 2 - columnGap * 2) / 3;
+  const cardWidth = (width - horizontalPadding * 2 - columnGap * 2) / 3;
 
   // Determine if we have a critical error (no data AND error state)
   const hasCriticalError =
@@ -125,7 +124,7 @@ export default function Index() {
                   justifyContent: "space-between",
                   marginBottom: 10,
                 }}
-                className="mt-2 pb-32"
+                className="mt-2 gap-2 pb-32"
                 scrollEnabled={false}
               />
             </>

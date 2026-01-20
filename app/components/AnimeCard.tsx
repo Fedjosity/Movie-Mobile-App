@@ -75,7 +75,9 @@ const AnimeCard = ({
                 resizeMode="contain"
               />
               <Text className="text-white text-xs font-bold uppercase">
-                {vote_average ? Math.round(vote_average / 2) : "N/A"}
+                {typeof vote_average === "number"
+                  ? `${vote_average.toFixed(1)}/10`
+                  : "N/A"}
               </Text>
             </View>
 

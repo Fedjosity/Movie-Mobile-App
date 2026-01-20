@@ -98,7 +98,16 @@ export const fetchAnimes = async ({
 
   if (result.status === "ok" && result.data) {
     const animes = result.data.map(mapAnimePaheToAnime);
-    return { status: "ok", data: animes };
+    const sortable = [...animes].filter(
+      (anime) => typeof anime.vote_average === "number",
+    );
+    sortable.sort((a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0));
+
+    const top = sortable.length > 0 ? sortable.slice(0, 50) : animes;
+    const shuffled = [...top].sort(() => Math.random() - 0.5);
+    const selected = shuffled.length >= 20 ? shuffled.slice(0, 20) : shuffled;
+
+    return { status: "ok", data: selected.length > 0 ? selected : animes };
   }
 
   return {

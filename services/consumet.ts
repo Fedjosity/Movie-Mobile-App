@@ -120,6 +120,7 @@ export interface ConsumetEpisodeSource {
   url: string;
   quality?: string;
   isM3U8?: boolean;
+  headers?: Record<string, string>;
 }
 
 export interface ConsumetEpisodeSourcesResponse {
@@ -154,6 +155,7 @@ export const searchAnime = async (
 
 export const getAnimeInfo = async (
   consumetId: string,
+  episodePage?: number,
 ): Promise<ServiceResponse<ConsumetAnimeInfo>> => {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
@@ -164,7 +166,10 @@ export const getAnimeInfo = async (
   }
 
   const encoded = encodeURIComponent(consumetId);
-  const url = `${baseUrl}/anime/animepahe/info/${encoded}`;
+  const url =
+    typeof episodePage === "number"
+      ? `${baseUrl}/anime/animepahe/info/${encoded}?episodePage=${episodePage}`
+      : `${baseUrl}/anime/animepahe/info/${encoded}`;
 
   const result = await safeFetch<ConsumetAnimeInfo>(url);
   if (result.status === "ok" && result.data) {
@@ -193,7 +198,10 @@ export const getEpisodeSources = async (
 
   const result = await safeFetch<ConsumetEpisodeSourcesResponse>(url);
   if (result.status === "ok" && result.data) {
-    return { status: "ok", data: result.data.sources || [] };
+    const headers = result.data.headers || {};
+    const sourcesWithHeaders =
+      (result.data.sources || []).map((s) => ({ ...s, headers })) || [];
+    return { status: "ok", data: sourcesWithHeaders };
   }
 
   return {

@@ -14,7 +14,6 @@ import {
   Image,
   Modal,
   RefreshControl,
-  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -37,6 +36,9 @@ const AnimeDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Download Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -46,102 +48,149 @@ const AnimeDetails = () => {
   const [availableStreams, setAvailableStreams] = useState<any[]>([]);
   const { addDownload } = useDownloads();
 
-  const fetchEpisodes = useCallback(async () => {
-    try {
-      if (offline === "true") {
-        setEpisodes([
-          { id: 101, episode_number: 1, name: "Pilot", air_date: "2017-08-18" },
-          {
-            id: 102,
-            episode_number: 2,
-            name: "Mean Right Hook",
-            air_date: "2017-08-18",
-          },
-          {
-            id: 103,
-            episode_number: 3,
-            name: "Worst Behavior",
-            air_date: "2017-08-18",
-          },
-          {
-            id: 104,
-            episode_number: 4,
-            name: "Royal Dragon",
-            air_date: "2017-08-18",
-          },
-          {
-            id: 105,
-            episode_number: 5,
-            name: "Take Shelter",
-            air_date: "2017-08-18",
-          },
-          {
-            id: 106,
-            episode_number: 6,
-            name: "Ashes, Ashes",
-            air_date: "2017-08-18",
-          },
-          {
-            id: 107,
-            episode_number: 7,
-            name: "Fish in the Jailhouse",
-            air_date: "2017-08-18",
-          },
-          {
-            id: 108,
-            episode_number: 8,
-            name: "The Defenders",
-            air_date: "2017-08-18",
-          },
-        ]);
-        setLoading(false);
-        return;
-      }
+  const fetchEpisodes = useCallback(
+    async (pageToLoad: number, replace = false) => {
+      try {
+        if (offline === "true") {
+          setEpisodes([
+            {
+              id: 101,
+              episode_number: 1,
+              name: "Pilot",
+              air_date: "2017-08-18",
+            },
+            {
+              id: 102,
+              episode_number: 2,
+              name: "Mean Right Hook",
+              air_date: "2017-08-18",
+            },
+            {
+              id: 103,
+              episode_number: 3,
+              name: "Worst Behavior",
+              air_date: "2017-08-18",
+            },
+            {
+              id: 104,
+              episode_number: 4,
+              name: "Royal Dragon",
+              air_date: "2017-08-18",
+            },
+            {
+              id: 105,
+              episode_number: 5,
+              name: "Take Shelter",
+              air_date: "2017-08-18",
+            },
+            {
+              id: 106,
+              episode_number: 6,
+              name: "Ashes, Ashes",
+              air_date: "2017-08-18",
+            },
+            {
+              id: 107,
+              episode_number: 7,
+              name: "Fish in the Jailhouse",
+              air_date: "2017-08-18",
+            },
+            {
+              id: 108,
+              episode_number: 8,
+              name: "The Defenders",
+              air_date: "2017-08-18",
+            },
+          ]);
+          setLoading(false);
+          setHasMore(false);
+          return;
+        }
 
-      if (!id) {
+        if (!id) {
+          setEpisodes([]);
+          setError("Missing anime identifier");
+          setLoading(false);
+          setHasMore(false);
+          return;
+        }
+
+        setError(null);
+        if (pageToLoad === 1) {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
+
+        const infoResult = await getConsumetAnimeInfo(String(id), pageToLoad);
+        if (infoResult.status === "error" || !infoResult.data) {
+          setEpisodes([]);
+          setError(infoResult.message || "Failed to load episodes");
+          setLoading(false);
+          setLoadingMore(false);
+          setHasMore(false);
+          return;
+        }
+
+        const mapped = (infoResult.data.episodes || []).map((ep, index) => ({
+          id: ep.id,
+          name: ep.title || `Episode ${ep.number ?? index + 1}`,
+          episode_number: ep.number ?? index + 1,
+          air_date: infoResult.data?.releaseDate || "Unknown",
+          still_path: null,
+          overview: ep.title || "",
+        }));
+
+        setEpisodes((prev) =>
+          pageToLoad === 1 || replace ? mapped : [...prev, ...mapped],
+        );
+
+        const totalEpisodes = infoResult.data.totalEpisodes ?? 0;
+        const pageSize = mapped.length;
+        const assumedPageSize = 24;
+        const episodesLoadedSoFar =
+          (pageToLoad - 1) * assumedPageSize + pageSize;
+
+        let more = false;
+        if (totalEpisodes > 0) {
+          more = episodesLoadedSoFar < totalEpisodes;
+        } else if (
+          typeof infoResult.data.episodePages === "number" &&
+          infoResult.data.episodePages > 0
+        ) {
+          more = pageToLoad < infoResult.data.episodePages;
+        } else {
+          more = pageSize >= assumedPageSize;
+        }
+
+        setHasMore(more);
+        setPage(pageToLoad);
+      } catch (e: any) {
         setEpisodes([]);
-        setError("Missing anime identifier");
+        setError(e.message || "Failed to load episodes");
+      } finally {
         setLoading(false);
-        return;
+        setLoadingMore(false);
       }
-
-      setError(null);
-      setLoading(true);
-
-      const infoResult = await getConsumetAnimeInfo(String(id));
-      if (infoResult.status === "error" || !infoResult.data) {
-        setEpisodes([]);
-        setError(infoResult.message || "Failed to load episodes");
-        setLoading(false);
-        return;
-      }
-
-      const mapped = (infoResult.data.episodes || []).map((ep, index) => ({
-        id: ep.id,
-        name: ep.title || `Episode ${ep.number ?? index + 1}`,
-        episode_number: ep.number ?? index + 1,
-        air_date: infoResult.data?.releaseDate || "Unknown",
-        still_path: null,
-        overview: ep.title || "",
-      }));
-
-      setEpisodes(mapped);
-    } catch (e: any) {
-      setEpisodes([]);
-      setError(e.message || "Failed to load episodes");
-    } finally {
-      setLoading(false);
-    }
-  }, [id, offline]);
+    },
+    [id, offline],
+  );
 
   useEffect(() => {
-    fetchEpisodes();
+    fetchEpisodes(1, true);
   }, [fetchEpisodes]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchEpisodes();
+    await fetchEpisodes(1, true);
     setRefreshing(false);
+  };
+
+  const handleLoadMoreEpisodes = () => {
+    if (loading || loadingMore || !hasMore || offline === "true") {
+      return;
+    }
+    fetchEpisodes(page + 1);
   };
 
   const handleDownloadPress = async (episode: any) => {
@@ -163,7 +212,10 @@ const AnimeDetails = () => {
             resolution: source.quality || "Unknown",
             size: "Unknown size",
             url: source.url,
-            isDownload: source.url.toLowerCase().includes(".mp4"),
+            headers: source.headers,
+            isDownload:
+              (source.isM3U8 === false || source.isM3U8 === undefined) &&
+              source.url.toLowerCase().includes(".mp4"),
           }),
         );
         setAvailableStreams(formatted);
@@ -185,6 +237,7 @@ const AnimeDetails = () => {
     if (stream.isDownload) {
       addDownload({
         id: Date.now().toString(),
+        animeId: String(id),
         title: (name as string) || "Unknown Anime",
         episode: `Episode ${selectedEpisode.episode_number}`,
         files: "1 file",
@@ -206,6 +259,9 @@ const AnimeDetails = () => {
       pathname: "/saved",
       params: {
         streamUrl: stream.url,
+        streamHeaders: stream.headers
+          ? JSON.stringify(stream.headers)
+          : undefined,
         title: name as string,
         episode: `Episode ${selectedEpisode.episode_number}`,
         resolution: stream.resolution,
@@ -244,8 +300,43 @@ const AnimeDetails = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        className="flex-1"
+      <FlatList
+        data={episodes}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View className="bg-white/10 p-4 rounded-xl mb-3 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3">
+              <Image
+                source={icons.play}
+                className="w-8 h-8 opacity-80"
+                resizeMode="contain"
+              />
+              <View>
+                <Text className="text-white font-bold text-lg">
+                  Episode {item.episode_number}
+                </Text>
+                {item.name ? (
+                  <Text className="text-gray-400 text-sm">{item.name}</Text>
+                ) : null}
+              </View>
+            </View>
+            <View className="flex-row items-center">
+              <Text className="text-gray-500 text-xs mr-2">
+                {item.air_date?.split(" ")[0]}
+              </Text>
+              <TouchableOpacity
+                className="bg-white/20 p-2 rounded-full"
+                onPress={() => handleDownloadPress(item)}
+              >
+                <Image
+                  source={icons.save}
+                  className="w-4 h-4"
+                  tintColor="white"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -253,97 +344,67 @@ const AnimeDetails = () => {
             tintColor="#fff"
           />
         }
-      >
-        <View className="w-full h-[400px]">
-          <Image
-            source={{ uri: posterUri }}
-            className="w-full h-full"
-            resizeMode="cover"
-          />
-          <View className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-primary to-transparent" />
-        </View>
-
-        <View className="px-5 -mt-10">
-          <Text className="text-3xl text-white font-bold shadow-sm">
-            {name}
-          </Text>
-
-          <View className="flex-row items-center gap-4 mt-3">
-            <View className="flex-row items-center gap-1 bg-white/20 px-2 py-1 rounded">
+        ListHeaderComponent={
+          <View>
+            <View className="w-full h-[400px]">
               <Image
-                source={icons.star}
-                className="size-4"
-                resizeMode="contain"
+                source={{ uri: posterUri }}
+                className="w-full h-full"
+                resizeMode="cover"
               />
-              <Text className="text-white font-bold">{vote_average}</Text>
+              <View className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-primary to-transparent" />
             </View>
-            <Text className="text-light-300 font-medium">{first_air_date}</Text>
-            <Text className="text-light-300 font-medium uppercase">
-              {original_language}
-            </Text>
-          </View>
-
-          <Text className="text-xl text-white font-bold mt-8 mb-4">
-            Episodes
-          </Text>
-
-          {loading && !refreshing ? (
-            <ActivityIndicator size="large" color="#0000ff" className="mt-5" />
-          ) : error ? (
-            <Text className="text-red-500">Error: {error}</Text>
-          ) : (
-            <FlatList
-              data={episodes}
-              scrollEnabled={false}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <View className="bg-white/10 p-4 rounded-xl mb-3 flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-3">
-                    <Image
-                      source={icons.play}
-                      className="w-8 h-8 opacity-80"
-                      resizeMode="contain"
-                    />
-                    <View>
-                      <Text className="text-white font-bold text-lg">
-                        Episode {item.episode_number}
-                      </Text>
-                      {item.name ? (
-                        <Text className="text-gray-400 text-sm">
-                          {item.name}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </View>
-                  <View className="flex-row items-center">
-                    <Text className="text-gray-500 text-xs mr-2">
-                      {item.air_date?.split(" ")[0]}
-                    </Text>
-
-                    {/* Download Button */}
-                    <TouchableOpacity
-                      className="bg-white/20 p-2 rounded-full"
-                      onPress={() => handleDownloadPress(item)}
-                    >
-                      <Image
-                        source={icons.save}
-                        className="w-4 h-4"
-                        tintColor="white"
-                      />
-                    </TouchableOpacity>
-                  </View>
+            <View className="px-5 -mt-10">
+              <Text className="text-3xl text-white font-bold shadow-sm">
+                {name}
+              </Text>
+              <View className="flex-row items-center gap-4 mt-3">
+                <View className="flex-row items-center gap-1 bg-white/20 px-2 py-1 rounded">
+                  <Image
+                    source={icons.star}
+                    className="size-4"
+                    resizeMode="contain"
+                  />
+                  <Text className="text-white font-bold">{vote_average}</Text>
                 </View>
-              )}
-              ListEmptyComponent={
-                <Text className="text-gray-500 italic">
-                  No episodes available.
+                <Text className="text-light-300 font-medium">
+                  {first_air_date}
                 </Text>
-              }
-            />
-          )}
-        </View>
-        <View className="h-10" />
-      </ScrollView>
+                <Text className="text-light-300 font-medium uppercase">
+                  {original_language}
+                </Text>
+              </View>
+              <Text className="text-xl text-white font-bold mt-8 mb-4">
+                Episodes
+              </Text>
+              {loading && !refreshing && episodes.length === 0 ? (
+                <ActivityIndicator
+                  size="large"
+                  color="#0000ff"
+                  className="mt-5"
+                />
+              ) : error && episodes.length === 0 ? (
+                <Text className="text-red-500">Error: {error}</Text>
+              ) : null}
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          !loading && !error ? (
+            <Text className="text-gray-500 italic px-5 mt-4">
+              No episodes available.
+            </Text>
+          ) : null
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator size="small" color="#0000ff" className="my-4" />
+          ) : null
+        }
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        onEndReached={handleLoadMoreEpisodes}
+        onEndReachedThreshold={0.3}
+      />
 
       {/* Resolution Selection Modal */}
       <Modal
