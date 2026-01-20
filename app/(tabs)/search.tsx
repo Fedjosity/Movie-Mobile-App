@@ -4,7 +4,15 @@ import { fetchAnimes } from "@/services/api";
 import useFetch from "@/services/useFetch";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import AnimeCard from "../components/AnimeCard";
 import SearchBar from "../components/SearchBar";
 
@@ -13,14 +21,36 @@ const Search = () => {
   const [searchQuery, setSearchQuery] = useState(
     query ? (query as string) : "",
   );
+  const [refreshing, setRefreshing] = useState(false);
+  const { width } = useWindowDimensions();
+
+  const horizontalPadding = 20;
+  const columnGap = 16;
+  const cardWidth =
+    (width - horizontalPadding * 2 - columnGap * 2) / 3;
+
+  const fetchAnimesCallback = React.useCallback(
+    () => fetchAnimes({ query: searchQuery }),
+    [searchQuery],
+  );
 
   const {
-    data: animes,
+    data: fetchResult,
     loading,
     error,
     refetch: loadAnimes,
     reset,
-  } = useFetch(() => fetchAnimes({ query: searchQuery }), false);
+  } = useFetch(fetchAnimesCallback, false);
+
+  const onRefresh = async () => {
+    if (searchQuery.trim()) {
+      setRefreshing(true);
+      await loadAnimes();
+      setRefreshing(false);
+    }
+  };
+
+  const animes = fetchResult?.data || [];
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -42,15 +72,24 @@ const Search = () => {
         className="flex-1 absolute w-full z-0"
         resizeMode="cover"
       />
+
       <FlatList
         data={animes}
-        renderItem={({ item }) => <AnimeCard {...item} />}
+        renderItem={({ item }) => (
+          <AnimeCard {...item} cardWidth={cardWidth} />
+        )}
         keyExtractor={(item) => item.id.toString()}
         className="px-5"
         numColumns={3}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#fff"
+          />
+        }
         columnWrapperStyle={{
-          justifyContent: "center",
-          gap: 16,
+          justifyContent: "space-between",
           marginVertical: 16,
         }}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -83,7 +122,7 @@ const Search = () => {
               </Text>
             )}
 
-            {!loading && !error && searchQuery.trim() && animes?.length > 0 && (
+            {!loading && !error && searchQuery.trim() && animes.length > 0 && (
               <Text className="text-xl text-white font-bold">
                 Search Results for{" "}
                 <Text className="text-accent">{searchQuery}</Text>

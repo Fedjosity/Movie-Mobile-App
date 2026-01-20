@@ -3,6 +3,10 @@ import { Link } from "expo-router";
 import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 
+type AnimeCardProps = Anime & {
+  cardWidth?: number;
+};
+
 const AnimeCard = ({
   id,
   poster_path,
@@ -13,7 +17,8 @@ const AnimeCard = ({
   episodes,
   status,
   overview,
-}: Anime) => {
+  cardWidth,
+}: AnimeCardProps) => {
   const imageSource = poster_path
     ? {
         uri: poster_path.startsWith("http")
@@ -25,7 +30,7 @@ const AnimeCard = ({
       };
 
   return (
-    <View>
+    <View style={cardWidth ? { width: cardWidth } : undefined}>
       <Link
         href={{
           pathname: "/anime/[id]",
@@ -43,7 +48,7 @@ const AnimeCard = ({
         }}
         asChild
       >
-        <TouchableOpacity className="w-28 mb-5 relative">
+        <TouchableOpacity className="mb-5 relative">
           <Image
             source={imageSource}
             className="w-full h-52 rounded-lg bg-gray-800"
